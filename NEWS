@@ -1,5 +1,9 @@
 NEWS/Changelog
 
+1.4-9	(2011-04-06)
+    o	force static built-in libraries on Windows to prevent Cairo
+	from picking up broken system libraries
+
 1.4-8	(2011-03-07)
     o	spurious character in the 1.4-7 w32-backed source has made it
 	unusable on Windows. This is a re-packaging of 1.4-7 without
