@@ -1,5 +1,17 @@
 NEWS/Changelog
 
+1.4-8	(2011-03-07)
+    o	spurious character in the 1.4-7 w32-backed source has made it
+	unusable on Windows. This is a re-packaging of 1.4-7 without
+	that spurious character.
+
+1.4-7	(2011-03-07)
+    o	fix a bug in raster support causing raster to be usable only
+	once
+
+    o	win backend: release and re-get DC on resize -- fixes resizing
+	issues in CairoWin() for some Windows versions
+
 1.4-6	(2011-02-10)
     o	adds raster image support (courtesy of R core)
 
