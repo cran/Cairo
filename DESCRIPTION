@@ -1,5 +1,5 @@
 Package: Cairo
-Version: 1.3-3
+Version: 1.3-4
 Title: R graphics device using cairo graphics library for creating high-quality bitmap (PNG, JPEG, TIFF), vector (PDF, SVG, PostScript) and display (X11 and Win32) output.
 Author: Simon Urbanek <Simon.Urbanek@r-project.org>, Jeffrey Horner <jeff.horner@vanderbilt.edu>
 Maintainer: Simon Urbanek <Simon.Urbanek@r-project.org>

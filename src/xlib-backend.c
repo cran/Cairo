@@ -14,6 +14,16 @@
 
 #if CAIRO_HAS_XLIB_SURFACE
 
+static char *types_list[] = { "x11", 0 };
+static Rcairo_backend_def RcairoBackendDef_ = {
+	BET_XLIB,
+	types_list,
+	"X11",
+	CBDF_VISUAL,
+	0
+};
+Rcairo_backend_def *RcairoBackendDef_xlib = &RcairoBackendDef_;
+
 #include <R.h>
 #include <R_ext/eventloop.h>
 #include <Rdevices.h>
@@ -174,7 +184,6 @@ static void ProcessX11DisplayEvents(Display *display)
 static void handleDisplayEvent(Display *display, XEvent event) {
 	caddr_t temp;
 	Rcairo_xlib_data *xd = NULL;
-	int do_update = 0;
 		
 	if (event.xany.type == Expose) {
 		/* printf(" - expose\n"); */
@@ -183,8 +192,8 @@ static void handleDisplayEvent(Display *display, XEvent event) {
 		XFindContext(display, event.xexpose.window,
 					 devPtrContext, &temp);
 		xd = (Rcairo_xlib_data *) temp;
-		if (event.xexpose.count == 0)
-			do_update = 1;
+		if (event.xexpose.count == 0) /* sync - some X11 implementations seem to need this */
+			XSync(xd->display, 0);
 	} else if (event.type == ConfigureNotify) {
 		while(XCheckTypedEvent(display, ConfigureNotify, &event))
 			;
@@ -192,12 +201,8 @@ static void handleDisplayEvent(Display *display, XEvent event) {
 					 devPtrContext, &temp);
 		xd = (Rcairo_xlib_data *) temp;
 		if (xd->width != event.xconfigure.width ||
-			xd->height != event.xconfigure.height)
-			do_update = 1;
-		
-		/* printf(" - configure %d x %d (vs %d x %d, update=%d)\n", event.xconfigure.width, event.xconfigure.height, xd->width, xd->height, do_update); */
-		
-		if (do_update) { 				
+			xd->height != event.xconfigure.height) {
+			/* printf(" - configure %d x %d (vs %d x %d)\n", event.xconfigure.width, event.xconfigure.height, xd->width, xd->height); */
 			Rcairo_backend_resize(xd->be, event.xconfigure.width, event.xconfigure.height);
 			/* Gobble Expose events; we'll redraw anyway */
 			while(XCheckTypedEvent(display, Expose, &event))
@@ -392,6 +397,8 @@ Rcairo_backend *Rcairo_new_xlib_backend(Rcairo_backend *be, char *display, doubl
 	return be;
 }
 #else
+Rcairo_backend_def *RcairoBackendDef_xlib = 0;
+
 Rcairo_backend *Rcairo_new_xlib_backend(Rcairo_backend *be, char *display, double width, double height, double umpl)
 {
 	error("cairo library was compiled without XLIB back-end.");

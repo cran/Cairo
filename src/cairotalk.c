@@ -1,7 +1,8 @@
 /* -*- mode: C; tab-width: 4; c-basic-offset: 4 -*- */
+#include "backend.h"
 #include "cairogd.h"
 #include "cairotalk.h"
-#include "backend.h"
+#include "cairobem.h"
 #include "img-backend.h"
 #include "pdf-backend.h"
 #include "svg-backend.h"
@@ -445,15 +446,14 @@ static void CairoGD_NewPage(R_GE_gcontext *gc, NewDevDesc *dd)
 	if (xd->npages > 0)  /* first request is not saved as this is part of the init */
 		xd->cb->save_page(xd->cb,xd->npages);
 
-	/* Set new parameters from graphical context.
-	 * do we need more than fill color for background?
-	 * is fill really the desired background ?
-	 xd->gd_bgcolor = gc->fill; */
-
-	{
-		cairo_operator_t oop = cairo_get_operator(cc);
-		cairo_set_operator(cc, CAIRO_OPERATOR_SOURCE);
-
+	cairo_reset_clip(cc);
+	/* we don't need to fill if the back-end sets nozero and bg is transparent */
+	if (! (R_TRANSPARENT(xd->bg) && (xd->cb->flags & CDF_NOZERO)) ) {
+		/* we are assuming that the operator is reasonable enough
+		   to clear the page. Setting CAIRO_OPERATOR_SOURCE seemed
+		   to trigger rasterization for PDF and SVG backends, so we
+		   leave the operator alone. Make sure the back-end sets
+		   an operator that is optimal for the back-end */
 		Rcairo_set_color(cc, xd->bg);
 		if (xd->cb->flags & CDF_OPAQUE) {
 			/* Opaque devices use canvas if bg is transparent */
@@ -465,10 +465,8 @@ static void CairoGD_NewPage(R_GE_gcontext *gc, NewDevDesc *dd)
 					Rcairo_set_color(cc, fake_bg_color);
 			}
 		}
-		cairo_reset_clip(cc);
 		cairo_new_path(cc);
 		cairo_paint(cc);
-		cairo_set_operator(cc, oop);
 	}
 }
 
@@ -549,6 +547,7 @@ Rboolean CairoGD_Open(NewDevDesc *dd, CairoGDDesc *xd,  char *type, int conn, ch
 		w = w * umpl * 72; /* inches * 72 = pt */
 		h = h * umpl * 72;
 		xd->cb->width = w; xd->cb->height = h;
+		xd->cb->flags|=CDF_NOZERO;
 		if (!strcmp(type,"pdf"))
 			xd->cb = Rcairo_new_pdf_backend(xd->cb, conn, file, w, h);
 		else if (!strcmp(type,"ps") || !strcmp(type,"postscript"))
@@ -591,7 +590,7 @@ Rboolean CairoGD_Open(NewDevDesc *dd, CairoGDDesc *xd,  char *type, int conn, ch
 	/* cairo_save(cc); */
 
 #ifdef JGD_DEBUG
-	Rprintf("open [type='%s'] %d x %d\n", type, (int)w, (int)h);
+	Rprintf("open [type='%s'] %d x %d (flags %04x)\n", type, (int)w, (int)h, xd->cb->flags);
 #endif
 
 	return TRUE;
@@ -886,5 +885,21 @@ void Rcairo_backend_init_surface(Rcairo_backend *be) {
 			CAIRO_FONT_WEIGHT_NORMAL);
 	cairo_set_font_size (cc, 14);
 #endif
+}
+
+/* add any new back-ends to this list */
+void Rcairo_register_builtin_backends() {
+	if (RcairoBackendDef_image) Rcairo_register_backend(RcairoBackendDef_image);
+	if (RcairoBackendDef_pdf) Rcairo_register_backend(RcairoBackendDef_pdf);
+	if (RcairoBackendDef_ps) Rcairo_register_backend(RcairoBackendDef_ps);
+	if (RcairoBackendDef_svg) Rcairo_register_backend(RcairoBackendDef_svg);
+	if (RcairoBackendDef_xlib) Rcairo_register_backend(RcairoBackendDef_xlib);
+	if (RcairoBackendDef_w32) Rcairo_register_backend(RcairoBackendDef_w32);
+}
+
+/* called on load */
+SEXP Rcairo_initialize() {
+	Rcairo_register_builtin_backends();
+	return R_NilValue;
 }
 

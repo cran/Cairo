@@ -32,6 +32,12 @@ Cairo <- function(width=640, height=480, file="", type="png", pointsize=12, bg="
 	invisible(structure(gdn,class=c("Cairo",paste("Cairo",toupper(ctype),sep='')),type=as.character(ctype),file=file))
 }
 
+Cairo.capabilities <- function() {
+    ust <- unique(.supported.types)
+    cap <- !is.na(match(ust, .Call("Rcairo_supported_types", PACKAGE="Cairo")))
+    names(cap) <- ust
+    cap
+}
 
 ###-------------- supporting functions -----------------
 
@@ -94,6 +100,13 @@ CairoPDF <- function(file = ifelse(onefile, "Rplots.pdf", "Rplot%03d.pdf"),
     if (missing(pointsize)) pointsize <- 12
     if (missing(bg)) bg <- "white"
 	Cairo(width, height, file, "pdf", pointsize=pointsize, bg=bg, units="in")
+}
+
+CairoSVG <- function(file = ifelse(onefile, "Rplots.svg", "Rplot%03d.svg"),
+                     width = 6, height = 6, onefile = TRUE, bg = "transparent",
+                     pointsize = 12, ...) {
+    if (!onefile) stop("Sorry, SVG backend of Cairo supports onefile=TRUE only")
+    Cairo(width, height, type='svg', file=filename, pointsize=pointsize, bg=bg, units='in', ...)
 }
 
 CairoPS <- function(file = ifelse(onefile, "Rplots.ps", "Rplot%03d.ps"),
