@@ -49,7 +49,7 @@ static void ps_backend_destroy(Rcairo_backend* be)
 	free(be);
 }
 
-Rcairo_backend *Rcairo_new_ps_backend(Rcairo_backend *be, int conn, char *filename, double width, double height)
+Rcairo_backend *Rcairo_new_ps_backend(Rcairo_backend *be, int conn, const char *filename, double width, double height)
 {
 	be->backend_type = BET_PS;
 	be->destroy_backend = ps_backend_destroy;
@@ -59,7 +59,7 @@ Rcairo_backend *Rcairo_new_ps_backend(Rcairo_backend *be, int conn, char *filena
 		int len = strlen(filename);
 
 		/* Add .ps extension if necessary */
-		if (len>3 && strcmp(filename+len-4,".ps")){
+		if (len>3 && strcmp(filename+len-3,".ps")){
 			fn = malloc(len + 5);
 			if (!fn) { free(be); return NULL; }
 			strcpy(fn,filename);
@@ -99,7 +99,7 @@ Rcairo_backend *Rcairo_new_ps_backend(Rcairo_backend *be, int conn, char *filena
 #else
 Rcairo_backend_def *RcairoBackendDef_ps = 0;
 
-Rcairo_backend *Rcairo_new_ps_backend(Rcairo_backend *be, int conn, char *filename, double width, double height)
+Rcairo_backend *Rcairo_new_ps_backend(Rcairo_backend *be, int conn, const char *filename, double width, double height)
 {
         error("cairo library was compiled without PostScript back-end.");
 	return NULL;

@@ -106,7 +106,7 @@ CairoSVG <- function(file = ifelse(onefile, "Rplots.svg", "Rplot%03d.svg"),
                      width = 6, height = 6, onefile = TRUE, bg = "transparent",
                      pointsize = 12, ...) {
     if (!onefile) stop("Sorry, SVG backend of Cairo supports onefile=TRUE only")
-    Cairo(width, height, type='svg', file=filename, pointsize=pointsize, bg=bg, units='in', ...)
+    Cairo(width, height, type='svg', file=file, pointsize=pointsize, bg=bg, units='in', ...)
 }
 
 CairoPS <- function(file = ifelse(onefile, "Rplots.ps", "Rplot%03d.ps"),
@@ -118,8 +118,12 @@ CairoPS <- function(file = ifelse(onefile, "Rplots.ps", "Rplot%03d.ps"),
 	if (!onefile) stop("Sorry, PostScript backend of Cairo supports onefile=TRUE only")
     if (missing(pointsize)) pointsize <- 12
     if (missing(bg)) bg <- "white"
-    Cairo(width, height, file, "ps", pointsize=pointsize, bg=bg)
-}   
+    # the following are different from R's postscript defaults!
+    # the PS device uses page dimensions, we don't
+    if (missing(width)) width <- 8
+    if (missing(height)) height <- 6
+    Cairo(width, height, file, "ps", pointsize=pointsize, bg=bg, units="in")
+}
 
 CairoWin <- function(width = 7, height = 7, pointsize = 12,
 					 record = getOption("graphics.record"),
