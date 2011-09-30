@@ -1,5 +1,5 @@
 Package: Cairo
-Version: 1.4-9
+Version: 1.5-0
 Title: R graphics device using cairo graphics library for creating
         high-quality bitmap (PNG, JPEG, TIFF), vector (PDF, SVG,
         PostScript) and display (X11 and Win32) output.
@@ -23,5 +23,6 @@ Description: This package provides a Cairo graphics device that can be
 License: GPL-2
 SystemRequirements: cairo (>= 1.2 http://www.cairographics.org/)
 URL: http://www.rforge.net/Cairo/
+Packaged: 2011-09-30 22:50:59 UTC; svnuser
 Repository: CRAN
-Date/Publication: 2011-04-06 18:13:01
+Date/Publication: 2011-10-01 08:18:27

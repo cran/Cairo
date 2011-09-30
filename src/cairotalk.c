@@ -11,6 +11,8 @@
 #include "w32-backend.h"
 #include "img-tiff.h" /* for TIFF_COMPR_LZW */
 #include <Rversion.h>
+#define USE_RINTERNALS 1
+#include <Rinternals.h>
 
 /* Device Driver Actions */
 
@@ -47,6 +49,8 @@ static void CairoGD_MetricInfo(int c,
 			      double* width, NewDevDesc *dd);
 static void CairoGD_Mode(int mode, NewDevDesc *dd);
 static void CairoGD_NewPage(R_GE_gcontext *gc, NewDevDesc *dd);
+static void CairoGD_Path(double *x, double *y, int npoly, int *nper, Rboolean winding,
+                       R_GE_gcontext *gc, NewDevDesc *dd);
 static void CairoGD_Polygon(int n, double *x, double *y,
 			   R_GE_gcontext *gc,
 			   NewDevDesc *dd);
@@ -70,6 +74,7 @@ static void CairoGD_Raster(unsigned int *raster, int w, int h,
                        double x, double y, double width, double height,
                        double rot, Rboolean interpolate,
                        R_GE_gcontext *gc, NewDevDesc *dd);
+static SEXP CairoGD_Cap(NewDevDesc *dd);
 
 /* fake mbcs support for old R versions */
 #if R_GE_version < 4
@@ -215,10 +220,14 @@ static void Rcairo_setup_font(CairoGDDesc* xd, R_GE_gcontext *gc) {
   char *Cfontface="Helvetica";
   int slant = CAIRO_FONT_SLANT_NORMAL;
   int wght  = CAIRO_FONT_WEIGHT_NORMAL;
+#ifdef WIN32
+  if (gc->fontface==5) Cfontface="Times";
+#else
   if (gc->fontface==5) Cfontface="Symbol";
+#endif
   if (gc->fontfamily[0]) Cfontface=gc->fontfamily;
-  if (gc->fontface==2 || gc->fontface==4) slant=CAIRO_FONT_SLANT_ITALIC;
-  if (gc->fontface==3 || gc->fontface==4) wght=CAIRO_FONT_WEIGHT_BOLD;
+  if (gc->fontface==3 || gc->fontface==4) slant=CAIRO_FONT_SLANT_ITALIC;
+  if (gc->fontface==2 || gc->fontface==4) wght=CAIRO_FONT_WEIGHT_BOLD;
   
   cairo_select_font_face (cc, Cfontface, slant, wght);
 
@@ -279,6 +288,54 @@ static void CairoGD_Activate(NewDevDesc *dd)
 	CairoGDDesc *xd = (CairoGDDesc *) dd->deviceSpecific;
 	if(!xd || !xd->cb) return;
 	if (xd->cb->activation) xd->cb->activation(xd->cb, 1);
+}
+
+static SEXP CairoGD_Cap(NewDevDesc *dd)
+{
+	SEXP raster = R_NilValue, dim;	
+	CairoGDDesc *xd = (CairoGDDesc *) dd->deviceSpecific;
+	cairo_surface_t *s;
+	if(!xd || !xd->cb || !(s = xd->cb->cs)) return raster;
+
+	cairo_surface_flush(s);
+	/* we have defined way of getting the contents only from image back-ends */
+	if (cairo_surface_get_type(s) == CAIRO_SURFACE_TYPE_IMAGE) {
+		int w = cairo_image_surface_get_width(s);
+		int h = cairo_image_surface_get_height(s);
+		unsigned int *dst, size = w * h, i;
+		unsigned int *img = (unsigned int*) cairo_image_surface_get_data(s);
+		cairo_format_t fmt = cairo_image_surface_get_format(s);
+		
+		/* we only support RGB or ARGB */
+		if (fmt != CAIRO_FORMAT_RGB24 && fmt != CAIRO_FORMAT_ARGB32)
+			return raster;
+		
+		raster = PROTECT(allocVector(INTSXP, size));
+		dst = (unsigned int*) INTEGER(raster);
+
+		Rprintf("format = %s (%d x %d)\n", (fmt == CAIRO_FORMAT_ARGB32) ? "ARGB" : "RGB", w, h);
+
+		if (fmt == CAIRO_FORMAT_ARGB32) /* ARGB is the default we use in most cases */
+			/* annoyingly Cairo uses pre-multiplied storage so we have to reverse that */
+			for (i = 0; i < size; i++) {
+				unsigned int v = *(img++), a = v >> 24;
+				dst[i] =
+					(a == 0) ? 0 : /* special cases for alpha = 0.0 and 1.0 */
+					((a == 255) ? R_RGB((v >> 16) & 255, (v >> 8) & 255, v & 255) : 
+					 R_RGBA(((v >> 16) & 255) * 255 / a, ((v >> 8) & 255) * 255 / a, (v & 255) * 255 / a, a));
+			}
+		else
+			for (i = 0; i < size; i++)
+				dst[i] = R_RGB((img[i] >> 16) & 255, (img[i] >> 8) & 255, img[i] & 255);
+		
+		dim = allocVector(INTSXP, 2);
+		INTEGER(dim)[0] = h;
+		INTEGER(dim)[1] = w;
+		setAttrib(raster, R_DimSymbol, dim);
+		
+		UNPROTECT(1);
+	}
+	return raster;
 }
 
 static void CairoGD_Circle(double x, double y, double r,  R_GE_gcontext *gc,  NewDevDesc *dd)
@@ -480,8 +537,6 @@ static SEXP findArg(const char *name, SEXP list) {
 Rboolean CairoGD_Open(NewDevDesc *dd, CairoGDDesc *xd,  const char *type, int conn, const char *file, double w, double h,
 					  double umpl, SEXP aux)
 {
-	cairo_t *cc;
-
 	if (umpl==0) error("unit multiplier cannot be zero");
 
 	xd->fill   = 0xffffffff; /* transparent, was R_RGB(255, 255, 255); */
@@ -498,7 +553,7 @@ Rboolean CairoGD_Open(NewDevDesc *dd, CairoGDDesc *xd,  const char *type, int co
 	/* Select Cairo backend */
 	/* Cairo 1.2-0: jpeg and tiff are created via external libraries (libjpeg/libtiff) by our code */
 	if (!strcmp(type,"png") || !strcmp(type,"png24")  || !strcmp(type,"jpeg") || !strcmp(type,"jpg") ||
-		!strcmp(type,"tif")  || !strcmp(type,"tiff")) {
+		!strcmp(type,"tif")  || !strcmp(type,"tiff") || !strcmp(type, "raster")) {
 		int alpha_plane = 0;
 		int quality = 0; /* find out if we have quality setting */
 		if (R_ALPHA(xd->bg) < 255) alpha_plane=1;
@@ -577,21 +632,64 @@ Rboolean CairoGD_Open(NewDevDesc *dd, CairoGDDesc *xd,  const char *type, int co
 		return FALSE;
 	}
 
-	cc = xd->cb->cc;
-
 	/* get modified dpi in case the backend has set it */
 	xd->dpix = xd->cb->dpix;
 	xd->dpiy = xd->cb->dpiy;
 	if (xd->dpix>0 && xd->dpiy>0) xd->asp = xd->dpix / xd->dpiy;
 
 	Rcairo_backend_init_surface(xd->cb);
-	/* cairo_save(cc); */
+	/*
+	  cc = xd->cb->cc;
+	  cairo_save(cc);
+	*/
 
 #ifdef JGD_DEBUG
 	Rprintf("open [type='%s'] %d x %d (flags %04x)\n", type, (int)w, (int)h, xd->cb->flags);
 #endif
 
 	return TRUE;
+}
+
+static void CairoGD_Path(double *x, double *y, int npoly, int *nper, Rboolean winding,
+                       R_GE_gcontext *gc, NewDevDesc *dd)
+{
+	CairoGDDesc *xd = (CairoGDDesc *) dd->deviceSpecific;
+	if(!xd || !xd->cb || !nper || npoly < 1) return;
+	{
+		int i, j, n;
+		cairo_t *cc = xd->cb->cc;
+		
+		Rcairo_set_line(xd, gc);
+
+#ifdef JGD_DEBUG
+		Rprintf("path %d polygons [%08x/%08x]\n", npoly, gc->col, gc->fill);
+#endif
+		
+		cairo_new_path(cc);
+		n = 0;
+		for (i = 0; i < npoly; i++) {
+			cairo_move_to(cc, x[n], y[n]);
+			n++;
+			for(j = 1; j < nper[i]; j++) {
+				cairo_line_to(cc, x[n], y[n]);
+				n++;
+			}
+			cairo_close_path(cc);
+		}
+
+		if (CALPHA(gc->fill)) {
+			if (winding) 
+				cairo_set_fill_rule(cc, CAIRO_FILL_RULE_WINDING);
+			else 
+				cairo_set_fill_rule(cc, CAIRO_FILL_RULE_EVEN_ODD);
+			Rcairo_set_color(cc, gc->fill);
+			cairo_fill_preserve(cc);
+		}
+		if (CALPHA(gc->col) && gc->lty != -1) {
+			Rcairo_set_color(cc, gc->col);
+			cairo_stroke(cc);
+		} else cairo_new_path(cc);
+    }
 }
 
 static void CairoGD_Polygon(int n, double *x, double *y,  R_GE_gcontext *gc,  NewDevDesc *dd)
@@ -860,6 +958,10 @@ void Rcairo_setup_gd_functions(NewDevDesc *dd) {
 	dd->wantSymbolUTF8 = TRUE;
 #if R_GE_version >= 6
 	dd->raster = CairoGD_Raster;
+	dd->cap = CairoGD_Cap;
+#if R_GE_version >= 8
+	dd->path = CairoGD_Path;
+#endif
 #endif
 #endif
 }
