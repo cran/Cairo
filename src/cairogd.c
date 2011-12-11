@@ -123,6 +123,15 @@ Rboolean Rcairo_new_device_driver(NewDevDesc *dd, const char *type, int conn, co
     dd->startlty   = LTY_SOLID;
     dd->startfont  = 1;
 
+	/* set default behavior - backends should change it where they diverge from the default */
+#if R_GE_version >= 9
+	dd->haveRaster = 2;       /* yes */
+	dd->haveTransparency = 2; /* yes */
+	dd->haveTransparentBg = 3;/* yes, full alpha range */
+	dd->haveCapture = 2;      /* yes */
+	dd->haveLocator = 2;      /* yes */
+#endif
+
     dd->deviceSpecific = (void *) xd;
 
 #ifdef JGD_DEBUG
@@ -407,7 +416,11 @@ SEXP cairo_font_set(SEXP args){
 		}
 	}
 #else
-	warning("the R Cairo package was not installed with fontconfig. Please consider installing the cairo graphics engine (www.cairographics.org) with freetype and fontconfig support");
+#ifdef WIN32
+	warning("CairoFonts() has no effect on Windows. Please use par(family=\"...\") to specify the desired font - see ?par.");
+#else
+	warning("The R Cairo package was not installed with fontconfig. Please consider installing the cairo graphics engine (www.cairographics.org) with freetype and fontconfig support");
+#endif
 #endif
 	return R_NilValue;
 }
