@@ -1,5 +1,15 @@
 NEWS/Changelog
 
+1.5-2	(2012-11-05)
+    o	added Cairo.onSave() callback which allows R code to be run
+	when Cairo finishes a page
+
+    o	added Cairo.serial() function which allows user code to check
+	whether the graphics have been updated
+
+    o	bugfix/update in Cairo connection patch (by Karl Millar)
+
+
 1.5-1	(2011-12-10)
     o	add support for dev.hold()/dev.flush()
 
@@ -10,6 +20,7 @@ NEWS/Changelog
     o	explicitly request font anti-aliasing even if it is not the
 	surface default - in particular Windows has disabled font
 	anti-aliasing by default
+
 
 1.5-0	(2011-09-30)
     o	fix swapped bold vs italic traits if freetype is not available
