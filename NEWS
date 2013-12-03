@@ -1,5 +1,11 @@
 NEWS/Changelog
 
+1.5-3	(2013-12-03)
+    o	remove compatibility layers to make R 3.x happy
+
+    o	adjust pointsize according to the dpi setting
+
+
 1.5-2	(2012-11-05)
     o	added Cairo.onSave() callback which allows R code to be run
 	when Cairo finishes a page
