@@ -1,7 +1,7 @@
 #ifndef _DEV_GD_H
 #define _DEV_GD_H
 
-#define CAIROGD_VER 0x010504 /* Cairo v1.5-4 */
+#define CAIROGD_VER 0x010505 /* Cairo v1.5-5 */
 
 /* cairo R package config */
 #include "cconfig.h"
@@ -64,6 +64,7 @@ typedef struct {
     int bg;  /* bg */
     double gamma; /* gamma */
     double dpix, dpiy, asp;
+    double fontscale; /* scaling of fonts due to DPI change */
     
     int gd_fill, gd_draw; /* current GD colors */
     double gd_ftsize, gd_ftm_ascent, gd_ftm_descent, gd_ftm_width;
