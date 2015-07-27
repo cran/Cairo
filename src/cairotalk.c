@@ -333,7 +333,9 @@ static SEXP CairoGD_Cap(NewDevDesc *dd)
 		raster = PROTECT(allocVector(INTSXP, size));
 		dst = (unsigned int*) INTEGER(raster);
 
+#ifdef JGD_DEBUG
 		Rprintf("format = %s (%d x %d)\n", (fmt == CAIRO_FORMAT_ARGB32) ? "ARGB" : "RGB", w, h);
+#endif
 
 		if (fmt == CAIRO_FORMAT_ARGB32) /* ARGB is the default we use in most cases */
 			/* annoyingly Cairo uses pre-multiplied storage so we have to reverse that */
@@ -615,8 +617,15 @@ Rboolean CairoGD_Open(NewDevDesc *dd, CairoGDDesc *xd,  const char *type, int co
 		!strcmp(type,"tif")  || !strcmp(type,"tiff") || !strcmp(type, "raster")) {
 		int alpha_plane = 0;
 		int quality = 0; /* find out if we have quality setting */
+		SEXP loc_cb = R_NilValue;
 #if R_GE_version >= 9
-		dd->haveLocator = 1; /* no locator on image back-ends */
+		loc_cb = findArg("locator", aux);
+		if (loc_cb && TYPEOF(loc_cb) == CLOSXP) {
+			dd->haveLocator = 2; /* yes, custom supplied locator callback */
+		} else {
+			dd->haveLocator = 1; /* no locator on image back-ends */
+			loc_cb = R_NilValue;
+		}
 #endif
 		if (R_ALPHA(xd->bg) < 255) alpha_plane=1;
 		if (!strcmp(type,"jpeg") || !strcmp(type,"jpg")) {
@@ -651,7 +660,7 @@ Rboolean CairoGD_Open(NewDevDesc *dd, CairoGDDesc *xd,  const char *type, int co
 			}
 		}
 		xd->cb->width = w; xd->cb->height = h;
-		xd->cb = Rcairo_new_image_backend(xd->cb, conn, file, type, (int)(w+0.5), (int)(h+0.5), quality, alpha_plane);
+		xd->cb = Rcairo_new_image_backend(xd->cb, conn, file, type, (int)(w+0.5), (int)(h+0.5), quality, alpha_plane, loc_cb);
 	}
 	else if (!strcmp(type,"pdf") || !strcmp(type,"ps") || !strcmp(type,"postscript") || !strcmp(type,"svg")) {
 #if R_GE_version >= 9
@@ -1148,4 +1157,12 @@ SEXP Rcairo_capture(SEXP dev) {
 	}
 	Rf_error("Unable to capture content - not a valid image backend Cairo device");
 	return R_NilValue;
+}
+
+SEXP Rcairo_snapshot(SEXP dev, SEXP sLast) {
+    int last = asInteger(sLast);
+    int devNr = asInteger(dev) - 1;
+    GEDevDesc *gd = GEgetDevice(devNr);
+    if (!gd) Rf_error("invalid device");
+    return last ? gd->savedSnapshot : GEcreateSnapshot(gd);
 }
