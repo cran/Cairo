@@ -1,6 +1,6 @@
-41f0912e7bb6df466fe9c072c42b670e *DESCRIPTION
+3d1a5bf6de89cc8c48597e42d5ebcc3a *DESCRIPTION
 4349f93fca74b0151a9435bfbeec5673 *NAMESPACE
-8ba6e8edf0b5016d52e9e7392055d688 *NEWS
+f1738c8203c6b516824cf9e85dbaae76 *NEWS
 652a130cdb89035bd21add505f09ff6c *R/Cairo.R
 45f780dde83799bfd5ec2d67659fded4 *R/imgtools.R
 a9008f9a9abd726e834484d834008b47 *R/zzz.R
@@ -20,11 +20,11 @@ b57465d1220ef2db48ada0ea4d699df4 *src/backend.h
 4c2d98472fa7190b86538d0f9d880a68 *src/cairobem.c
 4839a2d606ecaa9e9a000e38cb075fc7 *src/cairobem.h
 d41639330befbe7cfb4a71b6fcc33014 *src/cairogd.c
-9be2fd38bcf6d9c7ce45d2cc32238a0f *src/cairogd.h
+b063cf3a5e54b6c41248df6304be1805 *src/cairogd.h
 e6c0d7b56e54f2b1543ffe8b7bfe9312 *src/cairotalk.c
 bc2e6aeed51a7bf7c9f6c08c043a308a *src/cairotalk.h
 24d698d7aad1fb7f5b629be5b457e319 *src/cconfig.h.in
-8bb7e1f5ab1fe57f474ac62ba241bcfe *src/img-backend.c
+9793089f6917df1f2e9bda616930da65 *src/img-backend.c
 64361f5aefcef67513607eb825a58e98 *src/img-backend.h
 ed89d57a5afef289936a7bdb4b385edf *src/img-jpeg.c
 8d58fa8f009a29a0394d1bbdfe828807 *src/img-jpeg.h
