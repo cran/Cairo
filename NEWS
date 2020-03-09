@@ -1,5 +1,11 @@
 NEWS/Changelog
 
+1.5-11	(2020-02-26)
+    o	fixed missing PROTECT() (thanks to Tomáš Kalibera)
+
+    o	minor changes to remove R CMD check warnings
+
+
 1.5-10	(2019-03-27)
     o	support compilation with C++11-only compilers (#19)
 
