@@ -127,7 +127,7 @@ cairo_font_face_t *Rcairo_set_font_face(int i, const char *file){
 	if (!Rcairo_ft_library){
 		if (FT_Init_FreeType(&Rcairo_ft_library)){
 			error("Failed to initialize freetype library in Rcairo_set_font_face!\n");
-			return FALSE;
+			return 0; /* unreachable code */
 		}
 	}
 
@@ -267,8 +267,8 @@ static void Rcairo_setup_font(CairoGDDesc* xd, R_GE_gcontext *gc) {
 
 static void Rcairo_set_line(CairoGDDesc* xd, R_GE_gcontext *gc) {
 	cairo_t *cc = xd->cb->cc;
-	R_GE_lineend lend = CAIRO_LINE_CAP_SQUARE;
-	R_GE_linejoin ljoin = CAIRO_LINE_JOIN_ROUND;
+	cairo_line_cap_t lend = CAIRO_LINE_CAP_SQUARE;
+	cairo_line_join_t ljoin = CAIRO_LINE_JOIN_ROUND;
 	
 	/* Line width: par lwd  */
 	cairo_set_line_width(cc, gc->lwd * xd->fontscale); /* use fontscale to match the DPI setting */
@@ -500,6 +500,7 @@ static void CairoGD_MetricInfo(int c,  R_GE_gcontext *gc,  double* ascent, doubl
 	cairo_text_extents_t te = {0, 0, 0, 0, 0, 0};
 	char str[16];
 	int Unicode = mbcslocale;
+	double x_factor = 1.0;
 
 	if(!xd || !xd->cb) return;
 	if(c < 0) {c = -c; Unicode = 1;}
@@ -509,12 +510,9 @@ static void CairoGD_MetricInfo(int c,  R_GE_gcontext *gc,  double* ascent, doubl
 	Rcairo_setup_font(xd, gc);
 
 	if (!c) { 
-		str[0]='M'; str[1]='g'; str[2]=0;
 		/* this should give us a reasonably decent (g) and almost max width (M) */
-	} else if (gc->fontface == 5) {
-		char s[2];
-		s[0] = c; s[1] = '\0';
-		AdobeSymbol2utf8(str, s, 16);		
+		str[0]='M'; str[1]='g'; str[2]=0;
+		x_factor = 0.5; /* halve the width since we use two chars */
 	} else if(Unicode) {
 		Rf_ucstoutf8(str, (unsigned int) c);
 	} else {
@@ -530,9 +528,9 @@ static void CairoGD_MetricInfo(int c,  R_GE_gcontext *gc,  double* ascent, doubl
 #endif
 
 	*ascent  = -te.y_bearing; 
-	*descent = te.height+te.y_bearing;
+	*descent = te.height + te.y_bearing;
 	/* cairo doesn't report width of whitespace, so use x_advance */
-	*width = te.x_advance;
+	*width = te.x_advance * x_factor;
 
 #ifdef JGD_DEBUG
 	Rprintf("FM> ascent=%f, descent=%f, width=%f\n", *ascent, *descent, *width);

@@ -3498,8 +3498,116 @@ $as_echo_n "checking for configurable backends... " >&6; }
 $as_echo "${modlist}" >&6; }
 	 CAIRO_CFLAGS=`"${PKGCONF}" --cflags ${modlist}`
 	 CAIRO_LIBS=`"${PKGCONF}" --libs ${modlist}`
+	 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether --static is needed" >&5
+$as_echo_n "checking whether --static is needed... " >&6; }
+	 saveLIBS="$LIBS"
+	 LIBS="$saveLIBS ${CAIRO_LIBS}"
+	 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+/* Define cairo_reset_clip to an innocuous variant, in case <limits.h> declares cairo_reset_clip.
+   For example, HP-UX 11i <limits.h> declares gettimeofday.  */
+#define cairo_reset_clip innocuous_cairo_reset_clip
+
+/* System header to define __stub macros and hopefully few prototypes,
+    which can conflict with char cairo_reset_clip (); below.
+    Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
+    <limits.h> exists even on freestanding compilers.  */
+
+#ifdef __STDC__
+# include <limits.h>
+#else
+# include <assert.h>
+#endif
+
+#undef cairo_reset_clip
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char cairo_reset_clip ();
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined __stub_cairo_reset_clip || defined __stub___cairo_reset_clip
+choke me
+#endif
+
+int
+main ()
+{
+return cairo_reset_clip ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+else
+  CAIRO_LIBS=`"${PKGCONF}" --libs --static ${modlist}`
+	      LIBS="$saveLIBS ${CAIRO_LIBS}"
+	      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+/* Define cairo_reset_clip to an innocuous variant, in case <limits.h> declares cairo_reset_clip.
+   For example, HP-UX 11i <limits.h> declares gettimeofday.  */
+#define cairo_reset_clip innocuous_cairo_reset_clip
+
+/* System header to define __stub macros and hopefully few prototypes,
+    which can conflict with char cairo_reset_clip (); below.
+    Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
+    <limits.h> exists even on freestanding compilers.  */
+
+#ifdef __STDC__
+# include <limits.h>
+#else
+# include <assert.h>
+#endif
+
+#undef cairo_reset_clip
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char cairo_reset_clip ();
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined __stub_cairo_reset_clip || defined __stub___cairo_reset_clip
+choke me
+#endif
+
+int
+main ()
+{
+return cairo_reset_clip ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: neither works, abandoning pkg-config" >&5
+$as_echo "neither works, abandoning pkg-config" >&6; }
+	       CAIRO_LIBS=''
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+	 LIBS="$saveLIBS"
       else
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+	 { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
       fi
    fi
