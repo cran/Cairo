@@ -206,7 +206,7 @@ if test "${need_xtra_ft_flags}" = yes; then
         FCI="-I${pre}/include"
 	FCL="-L${pre}/lib"
      fi
-     if test -z "{FTI}" -a -e "${pre}/include/freetype2/freetype/freetype.h"; then
+     if test -z "${FTI}" -a -e "${pre}/include/freetype2/freetype/freetype.h"; then
         FTI="-I${pre}/include/freetype2"
 	FTL="-L${pre}/lib"
      fi
@@ -245,7 +245,7 @@ int main(void) {
 fi
 
 # --- check for JPEG support ---
-AC_MSG_CHECKING([wheter libjpeg works])
+AC_MSG_CHECKING([whether libjpeg works])
 zLIBS="${LIBS}"
 LIBS="${LIBS} -ljpeg"
 AC_LINK_IFELSE([AC_LANG_SOURCE([
@@ -262,7 +262,7 @@ int main(void) {
     LIBS="${zLIBS}"])
 
 # --- check for TIFF support
-AC_MSG_CHECKING([wheter libtiff works])
+AC_MSG_CHECKING([whether libtiff works])
 zLIBS="${LIBS}"
 if test -n "$PKGCONF"; then
   ## FIXME: --cflags?
