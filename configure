@@ -701,6 +701,9 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+with_freetype
+with_harfbuzz
+enable_debug
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1323,6 +1326,22 @@ if test -n "$ac_init_help"; then
      short | recursive ) echo "Configuration of Cairo 1.3:";;
    esac
   cat <<\_ACEOF
+
+Optional Features:
+  --disable-option-checking  ignore unrecognized --enable/--with options
+  --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
+  --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-debug          enable debug flags and output. [no]
+
+Optional Packages:
+  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
+  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-freetype         compile support for better font handling using
+                          FreeType and Fontconfig if present and supported by
+                          cairo. (default is [auto]).
+  --with-harfbuzz         compile support for bi-directional Unicode and
+                          advanced text layout (like ligature support) using
+                          Harfbuzz and ICU libraries. (default is [auto]).
 
 Some influential environment variables:
   CC          C compiler command
@@ -3928,6 +3947,23 @@ fi
 
 
 has_cairo_ft=no
+
+
+# Check whether --with-freetype was given.
+if test ${with_freetype+y}
+then :
+  withval=$with_freetype; with_freetype=$withval
+else $as_nop
+  with_freetype=auto
+fi
+
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether FreeType support is desired" >&5
+printf %s "checking whether FreeType support is desired... " >&6; }
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${with_freetype}" >&5
+printf "%s\n" "${with_freetype}" >&6; }
+
+if test x${with_freetype} != xno; then ## with_freetype
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for FreeType support in cairo" >&5
 printf %s "checking for FreeType support in cairo... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -4054,10 +4090,11 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam \
     conftest$ac_exeext conftest.$ac_ext
 fi
+fi ## with_freetype
 
 # --- check for JPEG support ---
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking wheter libjpeg works" >&5
-printf %s "checking wheter libjpeg works... " >&6; }
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether libjpeg works" >&5
+printf %s "checking whether libjpeg works... " >&6; }
 zLIBS="${LIBS}"
 LIBS="${LIBS} -ljpeg"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -4087,9 +4124,91 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam \
     conftest$ac_exeext conftest.$ac_ext
 
+# --- check for Harfbuzz/ICU support ---
+
+
+# Check whether --with-harfbuzz was given.
+if test ${with_harfbuzz+y}
+then :
+  withval=$with_harfbuzz; with_harfbuzz=$withval
+else $as_nop
+  with_harfbuzz=auto
+fi
+
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether Harfbuzz layout is desired" >&5
+printf %s "checking whether Harfbuzz layout is desired... " >&6; }
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${with_harfbuzz}" >&5
+printf "%s\n" "${with_harfbuzz}" >&6; }
+if test x${with_harfbuzz} != xno; then
+if test x${has_cairo_ft} != xyes; then
+  if test x${with_harfbuzz} = xyes; then
+    as_fn_error $? "ERROR: Harfbuzz support is requested, but FreeType is not available.
+    Harfbuzz requires cairo with FreeType support to be present." "$LINENO" 5
+  else
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: NOTE: Harfbuzz requires cairo with FreeType support which is not available." >&5
+printf "%s\n" "$as_me: NOTE: Harfbuzz requires cairo with FreeType support which is not available." >&6;}
+  fi
+  with_harfbuzz=no
+fi
+fi
+if test x${with_harfbuzz} != xno; then
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether Harfbuzz + ICU works" >&5
+printf %s "checking whether Harfbuzz + ICU works... " >&6; }
+zLIBS="${LIBS}"
+zCPPFLAGS="${CPPFLAGS}"
+if test -n "$PKGCONF"; then
+: ${HB_CPPFLAGS=`"${PKGCONF}" --cflags harfbuzz-icu icu-uc`}
+: ${HB_LIBS=`"${PKGCONF}" --libs ${PKGCONF_LIB_ADD} harfbuzz-icu icu-uc`}
+fi
+if test -z "${HB_LIBS}"; then
+  HB_LIBS='-lharfbuzz-icu -licuuc -licudata -lharfbuzz'
+fi
+## ICU uses C++ (sadly) so requires stdc++ - this may not be very portable ...
+LIBS="${LIBS} ${HB_LIBS} -lstdc++"
+CPPFLAGS="${CPPFLAGS} ${HB_CPPFLAGS}"
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <unicode/ubidi.h>
+#include <unicode/uchar.h>
+
+#include <harfbuzz/hb.h>
+#include <harfbuzz/hb-ft.h>
+#include <harfbuzz/hb-icu.h>
+int main(void) {
+  UBiDi *bidi = 0;
+  UChar *text = 0;
+  bidi = ubidi_open();
+  hb_buffer_t *buf = hb_buffer_create();
+  hb_buffer_set_unicode_funcs(buf, hb_icu_get_unicode_funcs());
+  return 0;
+}
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+
+printf "%s\n" "#define HAVE_HARFBUZZ 1" >>confdefs.h
+
+else $as_nop
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+    LIBS="${zLIBS}"
+    CPPFLAGS="${zCPPFLAGS}"
+    HB_CPPFLAGS=''
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+
 # --- check for TIFF support
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking wheter libtiff works" >&5
-printf %s "checking wheter libtiff works... " >&6; }
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether libtiff works" >&5
+printf %s "checking whether libtiff works... " >&6; }
 zLIBS="${LIBS}"
 if test -n "$PKGCONF"; then
   ## FIXME: --cflags?
@@ -4129,7 +4248,19 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam \
 ## our CPPFLAGS included R's CPPFLAGS which we don't need to
 ## set so only include those we detected in addition to the
 ## R CMD config CPPFLAGS
-CPPFLAGS="${CAIRO_CFLAGS} ${HAVE_RCONN_H}"
+CPPFLAGS="${CAIRO_CFLAGS} ${HB_CPPFLAGS} ${HAVE_RCONN_H}"
+
+# Check whether --enable-debug was given.
+if test ${enable_debug+y}
+then :
+  enableval=$enable_debug; want_debug="${enableval}"
+else $as_nop
+  want_debug=no
+fi
+
+if test ${want_debug} = yes; then
+CPPFLAGS="-DJGD_DEBUG=1 ${CPPFLAGS}"
+fi
 
 ac_config_files="$ac_config_files src/Makevars"
 

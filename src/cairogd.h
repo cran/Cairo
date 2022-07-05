@@ -1,13 +1,30 @@
 #ifndef _DEV_GD_H
 #define _DEV_GD_H
 
-#define CAIROGD_VER 0x01050f /* Cairo v1.5-15 */
+#define CAIROGD_VER 0x010600 /* Cairo v1.6-0 */
 
 /* cairo R package config */
 #include "cconfig.h"
 
 #include <cairo.h>
-#if CAIRO_HAS_FT_FONT
+
+/* Windows cannot statically use FontConfig, so
+   so we ignore CAIRO_FT there (as does R). If the
+   user wishes to override (e.g. for non-static builds),
+   use: -DUSE_CAIRO_FT=1
+*/
+#if CAIRO_HAS_FT_FONT && !defined(_WIN32) && !defined(USE_CAIRO_FT)
+#define USE_CAIRO_FT 1
+#endif
+/* ignore USE_CAIRO_FT=1 if cairo-ft is not available */
+#if USE_CAIRO_FT && defined(CAIRO_HAS_FT_FONT) && ! CAIRO_HAS_FT_FONT
+#undef USE_CAIRO_FT
+#endif
+#ifndef USE_CAIRO_FT
+#define USE_CAIRO_FT 0
+#endif
+
+#if USE_CAIRO_FT
 #include <cairo-ft.h>
 #include FT_TRUETYPE_IDS_H
 #include <fontconfig/fontconfig.h>

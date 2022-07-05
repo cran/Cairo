@@ -160,6 +160,15 @@ dnl fi
 AC_CHECK_DECLS([cairo_image_surface_get_format], [#include <cairo.h>])
 
 has_cairo_ft=no
+
+AC_ARG_WITH([freetype],
+  AS_HELP_STRING(--with-freetype,[compile support for better font handling using FreeType and Fontconfig if present and supported by cairo. (default is @<:@auto@:>@).]),
+        [with_freetype=$withval], [with_freetype=auto])
+
+AC_MSG_CHECKING([whether FreeType support is desired])
+AC_MSG_RESULT(${with_freetype})
+
+if test x${with_freetype} != xno; then ## with_freetype
 AC_MSG_CHECKING([for FreeType support in cairo])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([
 #include <cairo.h>
@@ -243,6 +252,7 @@ int main(void) {
  AC_MSG_ERROR([Cannot use cairo-ft backend, although cairo claims it is working. Please check your caito installation and/or update cairo if necessary or set CAIRO_CFLAGS/CAIRO_LIBS accordingly.])
  ])
 fi
+fi ## with_freetype
 
 # --- check for JPEG support ---
 AC_MSG_CHECKING([whether libjpeg works])
@@ -260,6 +270,64 @@ int main(void) {
     AC_DEFINE(SUPPORTS_JPEG, 1, [Define to 1 if libjpeg is present and working])],
   [ AC_MSG_RESULT(no)
     LIBS="${zLIBS}"])
+
+# --- check for Harfbuzz/ICU support ---
+
+AC_ARG_WITH([harfbuzz],
+  AS_HELP_STRING(--with-harfbuzz,[compile support for bi-directional Unicode and advanced text layout (like ligature support) using Harfbuzz and ICU libraries. (default is @<:@auto@:>@).]),
+        [with_harfbuzz=$withval], [with_harfbuzz=auto])
+
+AC_MSG_CHECKING([whether Harfbuzz layout is desired])
+AC_MSG_RESULT(${with_harfbuzz})
+if test x${with_harfbuzz} != xno; then
+if test x${has_cairo_ft} != xyes; then
+  if test x${with_harfbuzz} = xyes; then
+    AC_MSG_ERROR([ERROR: Harfbuzz support is requested, but FreeType is not available.
+    Harfbuzz requires cairo with FreeType support to be present.])
+  else
+    AC_MSG_NOTICE([NOTE: Harfbuzz requires cairo with FreeType support which is not available.])
+  fi
+  with_harfbuzz=no
+fi
+fi
+if test x${with_harfbuzz} != xno; then
+AC_MSG_CHECKING([whether Harfbuzz + ICU works])
+zLIBS="${LIBS}"
+zCPPFLAGS="${CPPFLAGS}"
+if test -n "$PKGCONF"; then
+: ${HB_CPPFLAGS=`"${PKGCONF}" --cflags harfbuzz-icu icu-uc`}
+: ${HB_LIBS=`"${PKGCONF}" --libs ${PKGCONF_LIB_ADD} harfbuzz-icu icu-uc`}
+fi
+if test -z "${HB_LIBS}"; then
+  HB_LIBS='-lharfbuzz-icu -licuuc -licudata -lharfbuzz'
+fi
+## ICU uses C++ (sadly) so requires stdc++ - this may not be very portable ...
+LIBS="${LIBS} ${HB_LIBS} -lstdc++"
+CPPFLAGS="${CPPFLAGS} ${HB_CPPFLAGS}"
+
+AC_LINK_IFELSE([AC_LANG_SOURCE([
+#include <unicode/ubidi.h>
+#include <unicode/uchar.h>
+
+#include <harfbuzz/hb.h>
+#include <harfbuzz/hb-ft.h>
+#include <harfbuzz/hb-icu.h>
+int main(void) {
+  UBiDi *bidi = 0;
+  UChar *text = 0;
+  bidi = ubidi_open();
+  hb_buffer_t *buf = hb_buffer_create();
+  hb_buffer_set_unicode_funcs(buf, hb_icu_get_unicode_funcs());
+  return 0;
+}
+])],[ AC_MSG_RESULT([yes])
+    AC_DEFINE(HAVE_HARFBUZZ, 1, [Define to 1 if Harfbuzz and ICU are present and working])],
+  [ AC_MSG_RESULT(no)
+    LIBS="${zLIBS}"
+    CPPFLAGS="${zCPPFLAGS}"
+    HB_CPPFLAGS=''
+    ])
+fi
 
 # --- check for TIFF support
 AC_MSG_CHECKING([whether libtiff works])
@@ -288,7 +356,15 @@ int main(void) {
 ## our CPPFLAGS included R's CPPFLAGS which we don't need to
 ## set so only include those we detected in addition to the
 ## R CMD config CPPFLAGS
-CPPFLAGS="${CAIRO_CFLAGS} ${HAVE_RCONN_H}"
+CPPFLAGS="${CAIRO_CFLAGS} ${HB_CPPFLAGS} ${HAVE_RCONN_H}"
+
+AC_ARG_ENABLE([debug],
+[AS_HELP_STRING([--enable-debug],[enable debug flags and output. @<:@no@:>@])],
+[want_debug="${enableval}"],
+[want_debug=no])
+if test ${want_debug} = yes; then
+CPPFLAGS="-DJGD_DEBUG=1 ${CPPFLAGS}"
+fi
 
 AC_CONFIG_FILES([src/Makevars])
 AC_OUTPUT
