@@ -31,7 +31,7 @@ Rcairo_backend_def *RcairoBackendDef_xlib = &RcairoBackendDef_;
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
-#include <X11/Intrinsic.h>      /*->    Xlib.h  Xutil.h Xresource.h .. */
+#include <X11/Xresource.h>
 
 typedef struct {
 	Rcairo_backend *be; /* back-link */
@@ -153,7 +153,7 @@ static void xlib_backend_destroy(Rcairo_backend* be)
 
 static int firstInit = 1;
 
-static void Rcairo_init_xlib() {
+static void Rcairo_init_xlib(void) {
 	if (!firstInit) return;
 	devPtrContext = XUniqueContext();
 }
