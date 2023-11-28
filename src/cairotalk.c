@@ -315,7 +315,7 @@ static void Rcairo_setup_font(CairoGDDesc* xd, R_GE_gcontext *gc) {
 				strcat(spec, specs[i - 5]);
 				Rcairo_set_font(i, spec);
 			} else
-				Rcairo_set_font(i, spec);
+				Rcairo_set_font(i, gc->fontfamily);
 			if (Rcairo_fonts[i].family)
 				free(Rcairo_fonts[i].family);
 			Rcairo_fonts[i].family = strdup(gc->fontfamily);
@@ -783,7 +783,7 @@ static rc_text_shape *c_setup_glyphs(CairoGDDesc *xd, R_GE_gcontext *gc, const c
 	ulen = str2utf16(str, strlen(str), &text, encoding) / sizeof(UChar); /* str2utf16 returns bytes, need chars */
 	ubidi_setPara(bidi, text, ulen, UBIDI_DEFAULT_LTR, NULL, &err);
 	if (U_FAILURE(err))
-		Rf_error("Unable to compute UBiDi for string '%'", str);
+		Rf_error("Unable to compute UBiDi for string '%s'", str);
 
 	rc_text_shape *ts = init_text_shape();
 	int i = xd->fontface - 1;

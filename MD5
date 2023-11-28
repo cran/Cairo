@@ -1,6 +1,6 @@
-237753c8ecf9c0f6750723ce9d383bcf *DESCRIPTION
+81cc57d6f896ffa1319b3ada21923317 *DESCRIPTION
 4349f93fca74b0151a9435bfbeec5673 *NAMESPACE
-262e9f6b9da3c979fa57fac070a2fa48 *NEWS
+30670d03a122babf484786074af0e42e *NEWS
 e6ecc2f7aa4084f8727d4955935b9289 *R/Cairo.R
 45f780dde83799bfd5ec2d67659fded4 *R/imgtools.R
 a9008f9a9abd726e834484d834008b47 *R/zzz.R
@@ -15,15 +15,15 @@ f15d68f877a128ae9727519c64b21dd0 *man/Cairo.serial.Rd
 051eda87864302d0a09cfb6315975ae2 *man/CairoFontMatch.Rd
 37aa98197989deec1b00bba343e199f3 *man/CairoFonts.Rd
 0a452df871ff02cc77b07df796e20739 *src/Makevars.in
-4a071a0f0c9b4b7c493e8c3174e3b2ae *src/Makevars.ucrt
+f84a32dd849d62e5890a2fdbff0f7a15 *src/Makevars.ucrt
 72c5f27149e19f5b0663a9908caacdb1 *src/Makevars.win
 d3ee50dae8105f2fded647142c7bfc94 *src/Rapi.h
 8a2c9ef2d88975f2a853fe5145d39745 *src/backend.h
 d48f95759226b7bcd0aa9ffe6c8cec07 *src/cairobem.c
 4839a2d606ecaa9e9a000e38cb075fc7 *src/cairobem.h
 d62b169707dc25a0166ec6b6418d614d *src/cairogd.c
-e191cc2cd5fd5d1c60ba3f187f6045f6 *src/cairogd.h
-32c097f6374eb440a16cd24cfad0b7ab *src/cairotalk.c
+50766953c5e82903e0589bcb7a69e1ce *src/cairogd.h
+6cf3f08103febf530f5897cae336194c *src/cairotalk.c
 9135781b3a9af05d75deb9489d0093e1 *src/cairotalk.h
 051131c99dc3c23fdd13e6061d652e55 *src/cconfig.h.in
 12898653f7e2c8f4d501dd29321ef5fe *src/img-backend.c
