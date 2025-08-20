@@ -102,13 +102,32 @@ static void CairoGD_Raster(unsigned int *raster, int w, int h,
                        R_GE_gcontext *gc, NewDevDesc *dd);
 static SEXP CairoGD_Cap(NewDevDesc *dd);
 static int  CairoGD_HoldFlush(NewDevDesc *dd, int level);
-/* additional GE 13 API */
+
+#if R_GE_version >= 13 /* R 4.1.0 */
 static SEXP     CairoGD_setPattern(SEXP pattern, pDevDesc dd);
 static void     CairoGD_releasePattern(SEXP ref, pDevDesc dd);
 static SEXP     CairoGD_setClipPath(SEXP path, SEXP ref, pDevDesc dd);
 static void     CairoGD_releaseClipPath(SEXP ref, pDevDesc dd);
 static SEXP     CairoGD_setMask(SEXP path, SEXP ref, pDevDesc dd);
 static void     CairoGD_releaseMask(SEXP ref, pDevDesc dd);
+#endif
+
+/* GE 14 - R 4.1.0 (no fns, just deviceVersion and deviceClip) */
+
+#if R_GE_version >= 15 /* R 4.2.0 */
+/* this is required since 15 otherwise R segfaults */
+static SEXP CairoGD_Capabilities(SEXP capabilities);
+/* there are more below (groups, paths, lum. masks)
+   which we don't bother declaring here */
+#endif
+
+#if R_GE_version >= 16
+/* GE 16 glyph API (R 4.3.0) */
+static void CairoGD_Glyph(int n, int *glyphs, double *x, double *y,
+						  SEXP font, double size,
+						  int col, double rot, pDevDesc dd);
+#endif
+/* GE 17 = R 4.6.0 */
 
 /* fake mbcs support for old R versions */
 #if R_GE_version < 4
@@ -362,7 +381,7 @@ static void Rcairo_setup_font(CairoGDDesc* xd, R_GE_gcontext *gc) {
     Rprintf("INFO: set font[%d] size to %.f (cex=%.f, ps=%.f, fontscale=%.f)\n", i,
 			(gc->cex * gc->ps * xd->fontscale + 0.5) * 64, gc->cex, gc->ps, xd->fontscale);
 #endif
-	long new_size = (gc->cex * gc->ps * xd->fontscale + 0.5) * 64;
+	long new_size = (long) ((gc->cex * gc->ps * xd->fontscale + 0.5) * 64.0);
 	if (Rcairo_fonts[i].font_size != new_size || !Rcairo_fonts[i].hb_font) {
 #ifdef JGD_DEBUG
 		Rprintf("INFO: allocating new instance of font %d for size %ld\n", i, new_size);
@@ -617,7 +636,7 @@ static int str2utf16(const char *c, int len, UChar **buf, const char *ifrom) {
         return 0;
     }
     size_t osize = sizeof(UChar) * (ce - c + 1), isize = ce - c;
-    UChar *js = buf[0] = (osize < sizeof(js_buf)) ? js_buf : (UChar*) R_alloc(sizeof(UChar), ce - c + 1);
+    UChar *js = buf[0] = (osize < sizeof(js_buf)) ? js_buf : (UChar*) R_alloc(sizeof(UChar), (int) (ce - c + 1));
     char *dst = (char*) js;
     int end_test = 1, is_le = (((char*)&end_test)[0] == 1) ? 1 : 0;
     if (!ifrom) ifrom = "";
@@ -762,7 +781,7 @@ static rc_text_shape *c_setup_ascii_glyphs(CairoGDDesc *xd, R_GE_gcontext *gc, c
 	int i = xd->fontface - 1;
 	if (i < 0 || i > 8) i = 0;
 	Rcairo_font_face *rf = &Rcairo_fonts[i];
-	chb_add_glyphs(ts, rf, (const UChar*) str, 0, strlen(str), CHB_DIR_LTR | CHB_FIRST | CHB_LAST | CHB_UTF8);
+	chb_add_glyphs(ts, rf, (const UChar*) str, 0, (int32_t) strlen(str), CHB_DIR_LTR | CHB_FIRST | CHB_LAST | CHB_UTF8);
 	return ts;
 }
 
@@ -780,7 +799,7 @@ static rc_text_shape *c_setup_glyphs(CairoGDDesc *xd, R_GE_gcontext *gc, const c
 	int32_t ulen = 0;
 	if (!bidi) bidi = ubidi_open();
 	if (!bidi) Rf_error("Unable to allocate memory for UBiDi");
-	ulen = str2utf16(str, strlen(str), &text, encoding) / sizeof(UChar); /* str2utf16 returns bytes, need chars */
+	ulen = str2utf16(str, (int) strlen(str), &text, encoding) / sizeof(UChar); /* str2utf16 returns bytes, need chars */
 	ubidi_setPara(bidi, text, ulen, UBIDI_DEFAULT_LTR, NULL, &err);
 	if (U_FAILURE(err))
 		Rf_error("Unable to compute UBiDi for string '%s'", str);
@@ -855,7 +874,7 @@ static void CairoGD_MetricInfo(int c,  R_GE_gcontext *gc,  double* ascent, doubl
 		}
 #endif
 	} else {
-		str[0] = c; str[1] = 0;
+		str[0] = (char) c; str[1] = 0;
 		/* Here, we assume that c < 256 */
 	}
 
@@ -1244,12 +1263,12 @@ static void CairoGD_Raster(unsigned int *raster, int w, int h,
 		/* allocate data and transform to pre-mpl alpha */
 		imageData = (unsigned char *) malloc(4*w*h);
 		for (i = 0; i < w * h; i++) {
-			int alpha = R_ALPHA(raster[i]);
-			imageData[i*4 + 3] = alpha;
+			unsigned int alpha = (unsigned int) R_ALPHA(raster[i]);
+			imageData[i*4 + 3] = (unsigned char) alpha;
 			if (alpha < 255) {
-				imageData[i*4 + 2] = R_RED(raster[i]) * alpha / 255;
-				imageData[i*4 + 1] = R_GREEN(raster[i]) * alpha / 255;
-				imageData[i*4 + 0] = R_BLUE(raster[i]) * alpha / 255;
+				imageData[i*4 + 2] = (unsigned char) (R_RED(raster[i]) * alpha / 255);
+				imageData[i*4 + 1] = (unsigned char) (R_GREEN(raster[i]) * alpha / 255);
+				imageData[i*4 + 0] = (unsigned char) (R_BLUE(raster[i]) * alpha / 255);
 			} else {
 				imageData[i*4 + 2] = R_RED(raster[i]);
 				imageData[i*4 + 1] = R_GREEN(raster[i]);
@@ -1296,9 +1315,9 @@ static void CairoGD_Size(double *left, double *right,  double *bottom, double *t
 static double CairoGD_StrWidthEnc(constxt char *str,  R_GE_gcontext *gc,  NewDevDesc *dd, const char *encoding)
 {
 	CairoGDDesc *xd = (CairoGDDesc *) dd->deviceSpecific;
-	int slen = strlen(str);
+	size_t slen = strlen(str);
 	if (!str) return 0;
-	if(!xd || !xd->cb) return slen*8;
+	if(!xd || !xd->cb) return ((double)slen) * 8.0;
 
 	Rcairo_setup_font(xd, gc);
 
@@ -1419,6 +1438,85 @@ static void CairoGD_TextNative(double x, double y, constxt char *str,
 	CairoGD_TextEnc(x, y, str, rot, hadj, gc, dd, "");
 }
 
+#if R_GE_version >= 15
+static SEXP CairoGD_Capabilities(SEXP capabilities) {
+	SEXP glyphs = PROTECT(ScalarInteger(1));
+	SET_VECTOR_ELT(capabilities, R_GE_capability_glyphs, glyphs);
+	UNPROTECT(1);
+	return capabilities;
+}
+#endif
+
+#if R_GE_version >= 16
+static void CairoGD_Glyph(int n, int *glyphs, double *x, double *y,
+						  SEXP font, double size,
+						  int col, double rot, pDevDesc dd) {
+	CairoGDDesc *xd = (CairoGDDesc *) dd->deviceSpecific;
+	cairo_t *cc;
+
+	if (!xd || !xd->cb) return;
+
+	cc = xd->cb->cc;
+
+	/* font info is explicit so we don't use our regular cache and mapping */
+	double weight = R_GE_glyphFontWeight(font);
+	int style = R_GE_glyphFontStyle(font);
+	int wt = (weight > 400) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL;
+	int sl = (style == R_GE_text_style_normal) ? CAIRO_FONT_SLANT_NORMAL : CAIRO_FONT_SLANT_ITALIC;
+
+#ifdef JGD_DEBUG
+	Rprintf("INFO: Glyph(n=%d), fontfile='%s', index=%d, weight=%f, style=%d, col=%x, rot=%f\n",
+			n, R_GE_glyphFontFile(font) ? R_GE_glyphFontFile(font) : "<NULL>",
+			R_GE_glyphFontIndex(font), weight, style, col, rot);
+#endif
+
+	cairo_font_face_t *cairo_face = NULL;
+#if USE_CAIRO_FT
+	FcPattern *pattern = FcPatternBuild(NULL,
+										FC_FILE, FcTypeString,
+										R_GE_glyphFontFile(font),
+										FC_INDEX, FcTypeInteger,
+										R_GE_glyphFontIndex(font),
+										NULL);
+	cairo_face = cairo_ft_font_face_create_for_pattern(pattern);
+	FcPatternDestroy(pattern);
+#endif
+	if (cairo_face &&
+		cairo_font_face_status(cairo_face) == CAIRO_STATUS_SUCCESS) {
+		cairo_set_font_face(cc, cairo_face);
+	} else /* fall back - hopefully not needed */
+		cairo_select_font_face(cc, R_GE_glyphFontFamily(font), sl, wt);
+
+	/* FIXME: not sure if we need to scale - Quartz uses 72 baseline - check sizes */
+	cairo_set_font_size (cc, size / (72*dd->ipr[0]));
+
+	Rcairo_set_color(cc, col);
+
+	int i = 0;
+	while (i < n) {
+		if (rot != 0.0) {
+			cairo_save(cc);
+			cairo_translate(cc, x[i], y[i]);
+			cairo_rotate(cc, -rot/180.*M_PI);
+			cairo_translate(cc, -x[i], -y[i]);
+		}
+
+		cairo_glyph_t cairoGlyph;
+		cairoGlyph.index = glyphs[i];
+		cairoGlyph.x = x[i];
+		cairoGlyph.y = y[i];
+
+		cairo_show_glyphs(cc, &cairoGlyph, 1);
+		/* for path ops use cairo_glyph_path(cc, &cairoGlyph, 1); instead */
+
+		if (rot != 0.0)
+			cairo_restore(cc);
+		i++;
+	}
+}
+#endif
+
+#if R_GE_version >= 13
 static SEXP CairoGD_setPattern(SEXP pattern, pDevDesc dd) {
     return R_NilValue;
 }
@@ -1437,6 +1535,23 @@ static SEXP CairoGD_setMask(SEXP path, SEXP ref, pDevDesc dd) {
 }
 
 static void CairoGD_releaseMask(SEXP ref, pDevDesc dd) {}
+#endif
+
+#if R_GE_version >= 15
+static SEXP CairoGD_defineGroup(SEXP source, int op, SEXP destination, pDevDesc dd) {
+	return R_NilValue;
+}
+
+static void CairoGD_useGroup(SEXP ref, SEXP trans, pDevDesc dd) {}
+
+static void CairoGD_releaseGroup(SEXP ref, pDevDesc dd) {}
+
+static void CairoGD_stroke(SEXP path, const pGEcontext gc, pDevDesc dd) {}
+
+static void CairoGD_fill(SEXP path, int rule, const pGEcontext gc, pDevDesc dd) {}
+static void CairoGD_fillStroke(SEXP path, int rule, const pGEcontext gc, pDevDesc dd) {}
+#endif
+
 
 /** fill the R device structure with callback functions */
 void Rcairo_setup_gd_functions(NewDevDesc *dd) {
@@ -1475,6 +1590,20 @@ void Rcairo_setup_gd_functions(NewDevDesc *dd) {
     dd->releaseClipPath = CairoGD_releaseClipPath;
     dd->setMask         = CairoGD_setMask;
     dd->releaseMask     = CairoGD_releaseMask;
+/* 14 = deviceClip */
+#if R_GE_version >= 15
+	dd->defineGroup     = CairoGD_defineGroup;
+	dd->useGroup        = CairoGD_useGroup;
+	dd->releaseGroup    = CairoGD_releaseGroup;
+	dd->stroke          = CairoGD_stroke;
+	dd->fill            = CairoGD_fill;
+	dd->fillStroke      = CairoGD_fillStroke;
+	dd->capabilities    = CairoGD_Capabilities;
+#if R_GE_version >= 16
+	/* NOTE: caps must be set from 14 on or else R segfaults */
+	dd->glyph           = CairoGD_Glyph;
+#endif
+#endif
 #endif
 #endif
 #endif

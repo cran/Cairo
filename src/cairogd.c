@@ -69,7 +69,7 @@ Rboolean Rcairo_new_device_driver(NewDevDesc *dd, const char *type, int conn, co
     xd->fontface = -1;
     xd->fontsize = -1;
     xd->basefontface = 1;
-    xd->basefontsize = initps;
+    xd->basefontsize = (int) initps;
 	xd->canvas = canvas;
 	xd->bg = bgcolor;
 	xd->gamma = 1.0;
@@ -144,9 +144,12 @@ Rboolean Rcairo_new_device_driver(NewDevDesc *dd, const char *type, int conn, co
 #endif
 
 #if R_GE_version >= 13
-    dd->deviceVersion = R_GE_definitions;
+	dd->deviceVersion = R_GE_definitions;
 #endif
-
+#if R_GE_version >= 16
+	/* FIXME: we don't actually implement 14 and 15 */
+	dd->deviceVersion = R_GE_glyphs;
+#endif
     dd->deviceSpecific = (void *) xd;
 
 #ifdef JGD_DEBUG
@@ -273,11 +276,17 @@ SEXP cairo_create_new_device(SEXP args)
 	    free(dev);
 	    error("unable to start device %s", devname);
 	}
-	
+
+	dd = GEcreateDevDesc(dev);
+#if R_VERSION >= R_Version(3,0,0)
+	/* technically, this was added in R 2.7.0 (undocumented), but it is really
+	   needed only since 4.4.0 when API cleanup removed gsetVar() */
+	GEaddDevice2(dd, devname);
+#else
+	GEaddDevice(dd);
 	gsetVar(PROTECT(install(".Device")), PROTECT(mkString(devname)), R_NilValue);
 	UNPROTECT(2);
-	dd = GEcreateDevDesc(dev);
-	GEaddDevice(dd);
+#endif
 	GEinitDisplayList(dd);
     } END_SUSPEND_INTERRUPTS;
 #ifdef JGD_DEBUG
@@ -507,7 +516,7 @@ SEXP ptr_to_raw(SEXP ptr, SEXP off, SEXP len) {
 	if (TYPEOF(ptr) != EXTPTRSXP)
 		error("ptr argument must be an external pointer");
 	{
-		unsigned char *data = (unsigned char*) EXTPTR_PTR(ptr);
+		unsigned char *data = (unsigned char*) R_ExternalPtrAddr(ptr);
 		if (data) {
 			SEXP v = allocVector(RAWSXP, l);
 			Rbyte *rc = RAW(v);
@@ -527,7 +536,7 @@ SEXP raw_to_ptr(SEXP ptr, SEXP woff, SEXP raw, SEXP roff, SEXP len) {
 	if (TYPEOF(raw) != RAWSXP)
 		error("raw argument must be a raw vector");
 	{
-		unsigned char *data = (unsigned char*) EXTPTR_PTR(ptr);
+		unsigned char *data = (unsigned char*) R_ExternalPtrAddr(ptr);
 		Rbyte *rc = RAW(raw);
 		memcpy(data+o1, rc+o2, l);
 		return ptr;

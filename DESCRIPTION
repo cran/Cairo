@@ -1,10 +1,13 @@
 Package: Cairo
-Version: 1.6-2
+Version: 1.6-5
 Title: R Graphics Device using Cairo Graphics Library for Creating
         High-Quality Bitmap (PNG, JPEG, TIFF), Vector (PDF, SVG,
         PostScript) and Display (X11 and Win32) Output
-Author: Simon Urbanek <Simon.Urbanek@r-project.org>, Jeffrey Horner <jeff.horner@vanderbilt.edu>
+Author: Simon Urbanek [aut, cre, cph] (https://urbanek.org, ORCID:
+    <https://orcid.org/0000-0003-2297-1732>),
+  Jeffrey Horner [aut]
 Maintainer: Simon Urbanek <Simon.Urbanek@r-project.org>
+Authors@R: c(person("Simon", "Urbanek", role=c("aut","cre","cph"), email="Simon.Urbanek@r-project.org", comment=c("https://urbanek.org", ORCID="0000-0003-2297-1732")), person("Jeffrey", "Horner", role="aut", email="jeff.horner@vanderbilt.edu"))
 Depends: R (>= 2.4.0)
 Imports: grDevices, graphics
 Suggests: png
@@ -14,6 +17,6 @@ License: GPL-2 | GPL-3
 SystemRequirements: cairo (>= 1.2 http://www.cairographics.org/)
 URL: http://www.rforge.net/Cairo/
 NeedsCompilation: yes
-Packaged: 2023-11-27 20:50:44 UTC; rforge
+Packaged: 2025-08-19 23:31:25 UTC; rforge
 Repository: CRAN
-Date/Publication: 2023-11-28 08:44:24 UTC
+Date/Publication: 2025-08-20 05:02:32 UTC

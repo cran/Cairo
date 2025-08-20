@@ -57,7 +57,7 @@ Rcairo_backend *Rcairo_new_pdf_backend(Rcairo_backend *be, int conn, const char 
 	be->save_page = pdf_save_page;
 	if (filename){
 		char *fn = NULL;
-		int len = strlen(filename);
+		size_t len = strlen(filename);
 
 		/* Add .pdf extension if necessary */
 		if (len>3 && strcmp(filename+len-4,".pdf")){
@@ -139,7 +139,7 @@ Rcairo_backend *Rcairo_new_pdf_backend(Rcairo_backend *be, int conn, const char 
 #else
 Rcairo_backend_def *RcairoBackendDef_pdf = 0;
 
-Rcairo_backend *Rcairo_new_pdf_backend(Rcairo_backend *be, int conn, const char *filename, double width, double height)
+Rcairo_backend *Rcairo_new_pdf_backend(Rcairo_backend *be, int conn, const char *filename, double width, double height, SEXP aux)
 {
 	error("cairo library was compiled without PDF back-end.");
 	return NULL;
