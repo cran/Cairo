@@ -1,7 +1,9 @@
 #ifndef _DEV_GD_H
 #define _DEV_GD_H
 
-#define CAIROGD_VER 0x010605 /* Cairo v1.6-5 */
+/* NOTE: from Cairo 1.7-0 on we removed CAIROGD_VER, rely on the package version instead */
+
+#define CAIROGD_MAX_GE_VERSION 16 /* Highest GE version we support */
 
 /* cairo R package config */
 #include "cconfig.h"
@@ -95,6 +97,23 @@ typedef struct {
     int npages; /* sequence # in case multiple pages are requested */
     
     int holdlevel;
+
+    /* the following are from coreutils, i.e. extra Paul's cairoFn code */
+    double lwdscale;
+    cairo_antialias_t antialias;
+    int numPatterns;
+    cairo_pattern_t **patterns;
+    int numClipPaths;
+    cairo_path_t **clippaths;
+    int appending;
+    int numMasks;
+    cairo_pattern_t **masks;
+    int currentMask;
+    int numGroups;
+    cairo_pattern_t **groups;
+    cairo_pattern_t *nullGroup;
+    int currentGroup;
+
 } CairoGDDesc;
 
 #endif

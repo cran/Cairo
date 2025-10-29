@@ -144,11 +144,7 @@ Rboolean Rcairo_new_device_driver(NewDevDesc *dd, const char *type, int conn, co
 #endif
 
 #if R_GE_version >= 13
-	dd->deviceVersion = R_GE_definitions;
-#endif
-#if R_GE_version >= 16
-	/* FIXME: we don't actually implement 14 and 15 */
-	dd->deviceVersion = R_GE_glyphs;
+	dd->deviceVersion = (R_GE_version > CAIROGD_MAX_GE_VERSION) ? CAIROGD_MAX_GE_VERSION : R_GE_version;
 #endif
     dd->deviceSpecific = (void *) xd;
 
@@ -306,10 +302,6 @@ void cairo_get_display_param(double *par) {
 	par[0] = jGDdpiX;
 	par[1] = jGDdpiY;
 	par[2] = jGDasp;
-}
-
-void gdd_get_version(int *ver) {
-	*ver=CAIROGD_VER;
 }
 
 SEXP cairo_font_match(SEXP args){
